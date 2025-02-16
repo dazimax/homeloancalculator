@@ -16,6 +16,10 @@ A **Home Loan Repayment Calculator** designed to calculate various aspects of a 
   - **Total interest payable**
   - **Total loan and interest amount**
 
+ ## Demo
+
+[Live Demo](https://myhomeloancalculator.netlify.app) 
+
 ### Steps to Run Locally
 
 1. **Clone the repository:**
