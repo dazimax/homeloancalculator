@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Loan Repayment Calculator (Variable)</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            margin-top: 5%;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-left: 4px solid #17a2b8;
+        }
+        pre {
+            background: #ddd;
+            border-radius: 4px;
+            max-width: 100%;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            display: block;
+            margin: 0;
+            padding: 0;
+            text-align: left;
+        }
+        .disclaimer {
+            font-size: 14px;
+            color: #666;
+            margin-top: 40px;
+            text-align: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <h2>&#128176; Home Loan Repayment Calculator (Variable)</h2>
+        <label>Loan Amount:</label>
+        <input v-model.number="loanAmount" type="number" step="0.01">
+        
+        <label>Annual Interest Rate (%):</label>
+        <input v-model.number="annualInterestRate" type="number" step="0.01">
+        
+        <label>Loan Term (Years):</label>
+        <input v-model.number="loanTermYears" type="number">
+        
+        <label>Current Repayment Amount:</label>
+        <input v-model.number="currentRepaymentAmount" type="number" step="0.01">
+
+        <label>Current Offset Account Balance:</label>
+        <input v-model.number="offsetBalance" type="number" step="0.01">
+
+        <label>Repayment Frequency:</label>
+        <select v-model="repaymentFrequency">
+            <option value="weekly">Weekly</option>
+            <option value="fortnightly">Fortnightly</option>
+            <option value="monthly">Monthly</option>
+        </select>
+                
+        <button @click="calculateRepayments">Calculate</button>
+        
+        <div v-if="results" class="result">
+            <h2>Results based on the Loan Amortization Formula</h2>
+            
+            <p><strong>Loan Amortization Formula:</strong></p>
+            <pre>
+                M = P * (r * (1 + r)^n) / ((1 + r)^n - 1)
+                M = Minimum repayment amount
+                P = Loan amount (principal)
+                r = Interest rate per period
+                n = Number of repayments
+            </pre>
+
+            <p><strong>Minimum Repayment Amount Formula:</strong></p>
+            <pre>
+                M = P * (r * (1 + r)^n) / ((1 + r)^n - 1)
+                Where:
+                P = Loan Amount - Offset Balance
+                r = Periodic interest rate
+                n = Number of periods
+            </pre>
+            <p>Minimum Repayment Amount:<strong> {{ minimumRepayment.toFixed(2) }} </strong></p>
+
+            <p><strong>Required Offset Balance Formula:</strong></p>
+            <pre>
+                Required Offset Balance = Loan Amount - Adjusted Loan Balance
+                Adjusted Loan Balance is calculated using the formula:
+                Adjusted Loan Balance = Current Repayment Amount * 
+                                        (((1 + Weekly Interest Rate) ^ Number of Weekly Payments - 1) / 
+                                        (Weekly Interest Rate * (1 + Weekly Interest Rate) ^ Number of Weekly Payments))
+            </pre>
+            <p>Required Offset Balance:<strong> {{ requiredOffsetBalance.toFixed(2) }}</strong></p>
+
+            <p><strong>Weekly Interest Rate Formula:</strong></p>
+            <pre>
+                Weekly Interest Rate = Annual Interest Rate / Number of Periods Per Year
+                Number of Periods Per Year is 52 for Weekly, 26 for Fortnightly, and 12 for Monthly.
+            </pre>
+            <p>Weekly Interest Rate:<strong> {{ (weeklyInterestRate * 100).toFixed(5) }}%</strong></p>
+
+            <p><strong>Number of Weekly Payments Formula:</strong></p>
+            <pre>
+                Number of Weekly Payments = Loan Term (in years) * Number of Periods Per Year
+            </pre>
+            <p>Number of Weekly Payments:<strong> {{ numberOfWeeklyPayments }}</strong></p>
+
+            <p><strong>Principal Allocation Formula:</strong></p>
+            <pre>
+                Principal Allocation = Minimum Repayment - Interest Allocation
+                Interest Allocation = P * r
+            </pre>
+            <p>Principal Allocation:<strong> {{ principalAllocation.toFixed(2) }}</strong></p>
+
+            <p><strong>Interest Allocation Formula:</strong></p>
+            <pre>
+                Interest Allocation = P * r
+                Where P = Loan Amount - Offset Balance, r = Periodic interest rate
+            </pre>
+            <p>Interest Allocation:<strong> {{ interestAllocation.toFixed(2) }}</strong></p>
+
+            <p><strong>Total Interest Payable Formula:</strong></p>
+            <pre>
+                Total Interest Payable = (Minimum Repayment * Number of Periods) - Loan Amount
+            </pre>
+            <p>Total Interest Payable:<strong> {{ totalInterest.toFixed(2) }}</strong></p>
+
+            <p><strong>Total Loan & Interest Amount Formula:</strong></p>
+            <pre>
+                Total Loan & Interest Amount = Loan Amount + Total Interest Payable
+            </pre>
+            <p>Total Loan & Interest Amount:<strong> {{ totalLoanAndInterest.toFixed(2) }}</strong></p>
+            <p class="disclaimer">
+                This is not a financial tool but for educational purposes only. Please consult your bank or loan broker
+                before making any financial decisions.
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                loanAmount: 350000,
+                annualInterestRate: 6.14,
+                loanTermYears: 30,
+                repaymentFrequency: 'weekly',
+                offsetBalance: 0,
+                currentRepaymentAmount: 0,
+                results: false,
+                minimumRepayment: 0,
+                requiredOffsetBalance: 0,
+                weeklyInterestRate: 0,
+                numberOfWeeklyPayments: 0,
+                principalAllocation: 0,
+                interestAllocation: 0,
+                totalInterest: 0,
+                totalLoanAndInterest: 0,
+                adjustedLoanBalance: 0
+            },
+            methods: {
+                calculateRepayments() {
+                    let periodsPerYear = this.repaymentFrequency === 'weekly' ? 52 : (this.repaymentFrequency === 'fortnightly' ? 26 : 12);
+                    let r = (this.annualInterestRate / 100) / periodsPerYear;
+                    let n = this.loanTermYears * periodsPerYear;
+                    let P = this.loanAmount - this.offsetBalance;
+
+                    this.minimumRepayment = P * (r * (1 + r) ** n) / ((1 + r) ** n - 1);
+                    this.weeklyInterestRate = r;
+                    this.numberOfWeeklyPayments = n;
+                    this.interestAllocation = P * r;
+                    this.principalAllocation = this.minimumRepayment - this.interestAllocation;
+                    this.totalInterest = (this.minimumRepayment * n) - this.loanAmount;
+                    this.totalLoanAndInterest = this.loanAmount + this.totalInterest;
+
+                    this.adjustedLoanBalance = this.currentRepaymentAmount * (((1 + this.weeklyInterestRate) ** this.numberOfWeeklyPayments - 1) / (this.weeklyInterestRate * (1 + this.weeklyInterestRate) ** this.numberOfWeeklyPayments));
+                    this.requiredOffsetBalance = (this.loanAmount - this.adjustedLoanBalance) - this.offsetBalance;
+
+                    this.results = true;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
